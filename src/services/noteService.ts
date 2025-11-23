@@ -15,9 +15,6 @@ const client = axios.create({
 export interface FetchNotesResponse {
   notes: Note[];
   totalPages: number;
-  totalItems: number;
-  page: number;
-  perPage: number;
 }
 
 export interface FetchNotesParams {
@@ -52,7 +49,7 @@ export async function createNote(payload: CreateNotePayload): Promise<Note> {
   return response.data;
 }
 
-export async function deleteNote(id: Note["id"]): Promise<DeleteNoteResponse> {
+export async function deleteNote(id: Note["id"]): Promise<Note> {
   const response: AxiosResponse<Note> = await client.delete(`/notes/${id}`);
   return response.data;
 }

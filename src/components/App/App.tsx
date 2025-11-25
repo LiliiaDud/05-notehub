@@ -1,15 +1,8 @@
 import css from "./App.module.css";
 import { useState } from "react";
 import { useDebounce } from "use-debounce";
-import {
-  useQuery,
-  useMutation,
-  useQueryClient,
-  keepPreviousData,
-} from "@tanstack/react-query";
-import { fetchNotes, createNote, deleteNote } from "../../services/noteService";
-import type { Note } from "../../types/note";
-import type { CreateNotePayload } from "../../services/noteService";
+import { useQuery, keepPreviousData } from "@tanstack/react-query";
+import { fetchNotes } from "../../services/noteService";
 
 import SearchBox from "../SearchBox/SearchBox";
 import Pagination from "../Pagination/Pagination";
@@ -24,33 +17,12 @@ export default function App() {
   const [debouncedSearch] = useDebounce(search, 400);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const queryClient = useQueryClient();
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ["notes", page, perPage, debouncedSearch],
     queryFn: () => fetchNotes({ page, perPage, search: debouncedSearch }),
     staleTime: 60 * 1000,
     placeholderData: keepPreviousData,
-  });
-
-  const createMutation = useMutation({
-    mutationFn: (payload: CreateNotePayload) => createNote(payload),
-    onSuccess: () => {
-      // Якщо видалити кеш тільки поточної сторінки, то останній елемент на ній зникне на бекенді
-      // (перейде на наступну сторінку) але не зʼявиться на UI, бо кеш не оновився.
-      // Можна переносити останній елемент в черзі, але простіше просто інвалідити весь кеш.
-      queryClient.invalidateQueries({ queryKey: ["notes"] });
-      setIsModalOpen(false);
-    },
-  });
-
-  const deleteMutation = useMutation({
-    mutationFn: (id: Note["id"]) => deleteNote(id),
-    onSuccess: () => {
-      // Якщо видалити кеш тільки сторінки з елементом, то на ній буде
-      // перший елемент з наступної кешованої сторінки
-      queryClient.invalidateQueries({ queryKey: ["notes"] });
-    },
   });
 
   const handleSearchChange = (value: string) => {
@@ -79,20 +51,11 @@ export default function App() {
         <p className={css.error}>There was an error, please try again...</p>
       )}
 
-      {data && data.notes.length > 0 && (
-        <NoteList
-          notes={data.notes}
-          onDelete={(id) => deleteMutation.mutate(id)}
-        />
-      )}
+      {data && data.notes.length > 0 && <NoteList notes={data.notes} />}
 
       {isModalOpen && (
         <Modal onClose={() => setIsModalOpen(false)}>
-          <NoteForm
-            onCancel={() => setIsModalOpen(false)}
-            onSubmit={(payload) => createMutation.mutate(payload)}
-            submitting={createMutation.isPending}
-          />
+          <NoteForm onCancel={() => setIsModalOpen(false)} />
         </Modal>
       )}
     </div>
